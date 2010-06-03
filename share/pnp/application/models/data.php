@@ -15,6 +15,7 @@ class Data_Model extends Model
     public  $PAGE_DEF   = array();    
     public  $PAGE_GRAPH = array();
     public  $XPORT = "";
+    public  $GRAPH_TYPE = 'normal';
     /*
     * 
     *
@@ -24,7 +25,39 @@ class Data_Model extends Model
         $this->config->read_config();
     }
 
+    /*
+    * Get All Special Templates
+    *
+    */
+    public function getSpecialTemplates(){
+        $conf = $this->config->conf;
+        $templates = array();
+        if (is_dir($conf['template_dir'].'/templates.special') ){
+            if ($dh = opendir($conf['template_dir'].'/templates.special')) {
+                while (($file = readdir($dh)) !== false) {
+                    if ($file == "." || $file == "..")
+                        continue;
+                    if (!preg_match("/(.*)\.php$/", $file, $template))
+                        continue;
+                    $templates[] = $template[1];
+                }
+            }
+        }
+        if(sizeof($templates) > 0){
+            return $templates;
+        }else{
+            return FALSE;
+        }
+    }
 
+    public function getFirstSpecialTemplate(){
+        $templates = $this->getSpecialTemplates();
+        if($templates === FALSE){
+            return FALSE;
+        }else{
+            return $templates[0];
+        }
+    }
     /*
     * 
     *
@@ -73,7 +106,7 @@ class Data_Model extends Model
     * 
     *
     */
-    function getServices($hostname) {
+    function getRawServices($hostname) {
         $services = array ();
         $host     = array();
         $conf     = $this->config->conf;
@@ -82,51 +115,75 @@ class Data_Model extends Model
         if (is_dir($path)) {
             if ($dh = opendir($path)) {
                 while ( ($file = readdir($dh) ) !== false) {
-                    $NAGIOS_SERVICEDESC = "";
                     if ($file == "." || $file == "..")
                         continue;
+
                     if (!preg_match("/(.*)\.xml$/", $file, $servicedesc))
                         continue;
+
                     $fullpath = $path . "/" . $file;
                     $stat = stat("$fullpath");
                     $age = (time() - $stat['mtime']);
-                    if(!$this->readXML($hostname, $servicedesc[1], FALSE)){
-                        continue;
-                    }
-    
+                    
                     $state = "active";    
                     if ($age > $conf['max_age']) { # 6Stunden
                         $state = "inactive";
                     }
-        
-                    if($servicedesc[1] == "_HOST_"){
-                        $host[0]['name']             = "_HOST_";
-                        $host[0]['hostname']         = (string) $this->XML->NAGIOS_HOSTNAME;
-                        $host[0]['state']            = $state;
-                        $host[0]['servicedesc']      = "Host Perfdata";
-                        $host[0]['is_multi']         = (string) $this->XML->DATASOURCE[0]->IS_MULTI[0];
-                    }else{
-                        $services[$i]['name']        = $servicedesc[1];
-                        // Sorting check_multi
-                         if( (string) $this->XML->NAGIOS_MULTI_PARENT == ""){
-                             $services[$i]['sort']        = strtoupper($servicedesc[1]);
-                        }else{
-                            $services[$i]['sort']       = strtoupper((string) $this->XML->NAGIOS_MULTI_PARENT);
-                            $services[$i]['sort']       .= (string) $this->XML->DATASOURCE[0]->IS_MULTI[0];
-                             $services[$i]['sort']       .= strtoupper($servicedesc[1]);
-                        }
-                        $services[$i]['state']       = $state;
-                        $services[$i]['hostname']    = (string) $this->XML->NAGIOS_DISP_HOSTNAME;
-                        $services[$i]['servicedesc'] = (string) $this->XML->NAGIOS_DISP_SERVICEDESC;
-                        $services[$i]['is_multi']    = (string) $this->XML->DATASOURCE[0]->IS_MULTI[0];
-                    }
-                $i++;
+                    $services[$i]['state'] = $state;
+                    $services[$i]['name'] = $servicedesc[1]; 
+                    $i++;
                 }
-                closedir($dh);
             }
-        } else {
-            throw new Kohana_Exception('error.perfdata-dir-for-host', $path, $hostname);
         }
+        if( is_array($services) && sizeof($services) > 0){
+            # Obtain a list of columns
+            foreach ($services as $key => $row) {
+                $sort[$key]  = $row['name'];
+            }
+            # Sort the data with volume descending, edition ascending
+            # Add $data as the last parameter, to sort by the common key
+            array_multisort($sort, SORT_STRING, $services);
+        }        
+        return $services;
+    }
+    /*
+    * 
+    *
+    */
+    function getServices($hostname) {
+        $services     = array ();
+        $host         = array();
+        $i            = 0;
+        $service_list = $this->getRawServices($hostname);
+        foreach( $service_list as $s ){
+            if(!$this->readXML($hostname, $s['name'], FALSE)){
+                continue;
+            }
+    
+            if($s['name'] == "_HOST_"){
+                $host[0]['name']             = "_HOST_";
+                $host[0]['hostname']         = (string) $this->XML->NAGIOS_HOSTNAME;
+                $host[0]['state']            = $s['state'];
+                $host[0]['servicedesc']      = "Host Perfdata";
+                $host[0]['is_multi']         = (string) $this->XML->DATASOURCE[0]->IS_MULTI[0];
+            }else{
+                $services[$i]['name']        = $s['name'];
+                // Sorting check_multi
+                if( (string) $this->XML->NAGIOS_MULTI_PARENT == ""){
+                    $services[$i]['sort']        = strtoupper($s['name']);
+                }else{
+                    $services[$i]['sort']        = strtoupper((string) $this->XML->NAGIOS_MULTI_PARENT);
+                    $services[$i]['sort']       .= (string) $this->XML->DATASOURCE[0]->IS_MULTI[0];
+                    $services[$i]['sort']       .= strtoupper($s['name']);
+                }
+                $services[$i]['state']       = $s['state'];
+                $services[$i]['hostname']    = (string) $this->XML->NAGIOS_DISP_HOSTNAME;
+                $services[$i]['servicedesc'] = (string) $this->XML->NAGIOS_DISP_SERVICEDESC;
+                $services[$i]['is_multi']    = (string) $this->XML->DATASOURCE[0]->IS_MULTI[0];
+            }
+            $i++;
+        }
+        #print Kohana::debug($services);
         if( is_array($services) && sizeof($services) > 0){
             # Obtain a list of columns
             foreach ($services as $key => $row) {
@@ -135,10 +192,7 @@ class Data_Model extends Model
             # Sort the data with volume descending, edition ascending
             # Add $data as the last parameter, to sort by the common key
             array_multisort($sort, SORT_STRING, $services);
-        //}else{
-        //    throw new Kohana_Exception('error.host-perfdata-dir-empty', $path );
         }        
-        #print Kohana::debug($services);
         if(is_array($host) && sizeof($host) > 0 ){
             array_unshift($services, $host[0]);
         }
@@ -232,13 +286,21 @@ class Data_Model extends Model
         if($host === false && $service === false){
             return false;
         }
-
         $conf = $this->config->conf;
-        if( $this->readXML($host,$service) == FALSE ){
-            throw new Kohana_Exception('error.xml-not-found', "WARUM ist das FALSE?");
-            return false;
+
+        /*
+         * Special Templates without Host/Service
+         */
+        if($host == '__special' ){
+            // $service contains the Template name
+            $this->includeTemplate($service,'special');
+        }else{
+            if( $this->readXML($host,$service) == FALSE ){
+                throw new Kohana_Exception('error.xml-not-found', "Undefined error");
+                return false;
+            }
+            $this->includeTemplate($this->DS[0]['TEMPLATE']);
         }
-        $this->includeTemplate($this->DS[0]['TEMPLATE']);
         if(isset($this->TIMERANGE['type']) && $this->TIMERANGE['type'] == "start-end"){
             $view = intval($view);
             $i=0;
@@ -257,7 +319,9 @@ class Data_Model extends Model
                 }else{
                      $tmp_struct['ds_name']   = $this->DS[$i]['NAME'];
                 }
-                $tmp_struct['DS']      = $this->DS[$i];
+                if($this->DS){
+                    $tmp_struct['DS']      = $this->DS[$i];
+                }
                 $tmp_struct['MACRO']   = $this->MACRO;
                 if(isset($this->XML->XML->VERSION)){
                     $tmp_struct['VERSION']   = pnp::xml_version_check( (string) $this->XML->XML->VERSION);
@@ -280,7 +344,7 @@ class Data_Model extends Model
                     $tmp_struct = array();
                     $tmp_struct['LEVEL']         = $i;
                     $tmp_struct['VIEW']          = $view_key;
-                        $tmp_struct['SOURCE']        = $key;
+                    $tmp_struct['SOURCE']        = $key;
                     $tmp_struct['RRD_CALL']      = $this->TIMERANGE[$v]['cmd'] . " " . $this->RRD['opt'][$key] . " " . $this->RRD['def'][$key];
                     if(array_key_exists('ds_name',$this->RRD) ){
                             $tmp_struct['ds_name']   = $this->RRD['ds_name'][$key];
@@ -288,7 +352,9 @@ class Data_Model extends Model
                             $tmp_struct['ds_name']   = $this->DS[$i]['NAME'];
                     }
                     $tmp_struct['TIMERANGE']     = $this->TIMERANGE[$v];
-                    $tmp_struct['DS']            = $this->DS[$i];
+                    if($this->DS){
+                        $tmp_struct['DS']            = $this->DS[$i];
+                    }
                     $tmp_struct['MACRO']         = $this->MACRO;
                     if(isset($this->XML->XML->VERSION)){
                         $tmp_struct['VERSION']   = pnp::xml_version_check( (string) $this->XML->XML->VERSION);
@@ -314,14 +380,16 @@ class Data_Model extends Model
                 $tmp_struct['RRD_CALL']      = $this->TIMERANGE[$view]['cmd'] . " ". $this->RRD['opt'][$key] . " " . $this->RRD['def'][$key];
                 $tmp_struct['TIMERANGE']     = $this->TIMERANGE[$view];
                 if(array_key_exists('ds_name',$this->RRD) ){
-                     $tmp_struct['ds_name']   = $this->RRD['ds_name'][$key];
+                     $tmp_struct['ds_name']  = $this->RRD['ds_name'][$key];
                 }else{
-                     $tmp_struct['ds_name']   = $this->DS[$i]['NAME'];
+                     $tmp_struct['ds_name']  = $this->DS[$i]['NAME'];
                 }
-                $tmp_struct['DS']      = $this->DS[$i];
-                   $tmp_struct['MACRO']         = $this->MACRO;
+                if($this->DS){
+                    $tmp_struct['DS']            = $this->DS[$i];
+                }
+                $tmp_struct['MACRO']         = $this->MACRO;
                 if(isset($this->XML->XML->VERSION)){
-                       $tmp_struct['VERSION']   = pnp::xml_version_check( (string) $this->XML->XML->VERSION);
+                    $tmp_struct['VERSION']   = pnp::xml_version_check( (string) $this->XML->XML->VERSION);
                 }else{
                     $tmp_struct['VERSION']   = pnp::xml_version_check("0");
                 }
@@ -346,15 +414,23 @@ class Data_Model extends Model
     * 
     *
     */
-    private function includeTemplate($template=FALSE){
+    private function includeTemplate($template=FALSE,$type='normal'){
         if($template===FALSE){
             return FALSE;
         }
         $this->RRD = array();
-        $template_file = $this->findTemplate( $template );
-        $hostname      = $this->MACRO['HOSTNAME'];
-        $servicedesc   = $this->MACRO['SERVICEDESC'];
-        $TIMERANGE     = $this->TIMERANGE;
+        /*
+        * Normal PNP Templates
+        */
+        if($type == 'normal'){
+            $template_file = $this->findTemplate( $template );
+            $hostname      = $this->MACRO['HOSTNAME'];
+            $servicedesc   = $this->MACRO['SERVICEDESC'];
+            $TIMERANGE     = $this->TIMERANGE;
+        }elseif($type == 'special'){
+            $template_file = $this->findTemplate( $template, $type );
+            $TIMERANGE     = $this->TIMERANGE;
+        }
         $def     = FALSE;
         $opt     = FALSE;
         $ds_name = FALSE;
@@ -370,7 +446,9 @@ class Data_Model extends Model
         foreach($this->MACRO as $key=>$val ){
             ${"NAGIOS_".$key} = $val;
         }
-        $rrdfile = $RRDFILE[1];
+        if(isset($RRDFILE[1])){
+            $rrdfile = $RRDFILE[1];
+        }
         ob_start();
         include($template_file);
         ob_end_clean();
@@ -409,25 +487,41 @@ class Data_Model extends Model
     * 
     *
     */
-    public function findTemplate($template){
+    public function findTemplate($template,$type='normal'){
         $conf = $this->config->conf;
-        $r_template = $this->findRecursiveTemplate($template,"templates");
-        $r_template_dist = $this->findRecursiveTemplate($template,"templates.dist");
+        /*
+         * Normal Templates
+         */
+        if($type == 'normal'){
+            $r_template = $this->findRecursiveTemplate($template,"templates");
+            $r_template_dist = $this->findRecursiveTemplate($template,"templates.dist");
 
-        if (is_readable($conf['template_dir'].'/templates/' . $template . '.php')) {
-            $template_file = $conf['template_dir'].'/templates/' . $template . '.php';
-        }elseif (is_readable($conf['template_dir'].'/templates.dist/' . $template . '.php')) {
-            $template_file = $conf['template_dir'].'/templates.dist/' . $template . '.php';
-        }elseif($r_template != "" ){
-            $template_file = $conf['template_dir'].'/templates/'. $r_template . '.php';
-        }elseif($r_template_dist != "" ){
-            $template_file = $conf['template_dir'].'/templates.dist/'. $r_template_dist . '.php';
-        }elseif (is_readable($conf['template_dir'].'/templates/default.php')) {
-            $template_file = $conf['template_dir'].'/templates/default.php';
-        }else {
-            $template_file = $conf['template_dir'].'/templates.dist/default.php';
+            if (is_readable($conf['template_dir'].'/templates/' . $template . '.php')) {
+                $template_file = $conf['template_dir'].'/templates/' . $template . '.php';
+            }elseif (is_readable($conf['template_dir'].'/templates.dist/' . $template . '.php')) {
+                $template_file = $conf['template_dir'].'/templates.dist/' . $template . '.php';
+            }elseif($r_template != "" ){
+                $template_file = $conf['template_dir'].'/templates/'. $r_template . '.php';
+            }elseif($r_template_dist != "" ){
+                $template_file = $conf['template_dir'].'/templates.dist/'. $r_template_dist . '.php';
+            }elseif (is_readable($conf['template_dir'].'/templates/default.php')) {
+                $template_file = $conf['template_dir'].'/templates/default.php';
+            }else {
+                $template_file = $conf['template_dir'].'/templates.dist/default.php';
+            }
+            return $template_file;
         }
-    return $template_file;
+        /*
+         * Special Templates
+         */
+        if($type == 'special'){
+            if (is_readable($conf['template_dir'].'/templates.special/' . $template . '.php')) {
+                $template_file = $conf['template_dir'].'/templates.special/' . $template . '.php';
+            }else{
+                throw new Kohana_Exception("Special Template '$template' not found");
+            }
+            return $template_file;
+        }
     }
 
     /*
@@ -807,4 +901,87 @@ class Data_Model extends Model
         }
         return $csv;    
     }
-}
+
+    /*
+    * 
+    * Used in Special Templates to gather data
+    */
+    public function tplGetData ($hostname, $servicedesc, $throw_exception=TRUE){
+        $conf        = $this->config->conf;
+        $xmlfile     = $conf['rrdbase'].$hostname."/".$servicedesc.".xml";
+        $data = array();
+        if (file_exists($xmlfile)) {
+            $xml = simplexml_load_file($xmlfile);
+            // Throw excaption without a valid structure version
+            if(!isset($xml->XML->VERSION) && $throw_exception == TRUE){
+                throw new Kohana_Exception('error.xml-structure-without-version-tag',$xmlfile);
+            }
+            if(!isset($xml->XML->VERSION) && $throw_exception == FALSE){
+                return FALSE;
+            }
+            foreach ( $xml as $key=>$val ){
+                if(preg_match('/^NAGIOS_(.*)$/', $key, $match)){
+                    $key = $match[1];
+                    $data['MACRO'][$key] = (string) $val;
+                }
+            }
+            $i=0;
+            foreach ( $xml->DATASOURCE as $datasource ){
+                foreach ( $datasource  as $key=>$val){
+                    $data['DS'][$i][$key] = (string) $val;
+                }
+                $i++; 
+            }
+            return $data;
+        }else{
+            throw new Kohana_Exception('error.xml-not-found', $xmlfile);
+        }
+    }
+    /*
+    * 
+    * Used in Special Templates to gather data
+    */
+    public function tplGetServices ($hostregex=FALSE, $serviceregex = ''){
+        if($hostregex === FALSE){
+            return FALSE; 
+        }
+        $hostregex    = sprintf("/%s/",$hostregex);
+        $serviceregex = sprintf("/%s/",$serviceregex);
+        $hosts = $this->getHosts();
+        $new_hosts = array();
+        foreach( $hosts as $host){
+            if(preg_match($hostregex,$host['name'])){
+                $new_hosts[] = $host['name'];
+            }
+        }
+
+        if(sizeof($new_hosts) == 0){
+            throw new Kohana_Exception('error.tpl-no-hosts-found', $hostregex);
+        }
+
+        $i = 0;
+        $new_services = array();
+        foreach($new_hosts as $host){
+            $services = $this->getRawServices($host);
+            if(sizeof($services) == 0){
+                throw new Kohana_Exception('error.tpl-no-services-found', $serviceregex);
+            }
+            foreach($services as $service){
+                if(preg_match($serviceregex, $service['name'])){
+                    $new_services[$i]['hostname'] = $host;
+                    $new_services[$i]['host']     = $host;
+                    $new_services[$i]['service_description'] = $service['name'];
+                    $new_services[$i]['service']             = $service['name'];
+                    $i++;
+                }
+            }
+        }
+
+        if(sizeof($new_services) == 0){
+            throw new Kohana_Exception('error.tpl-no-services-found', $serviceregex);
+        }
+
+        return $new_services;
+            
+    }
+} 

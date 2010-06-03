@@ -48,19 +48,17 @@ foreach ($this->DS as $KEY=>$VAL) {
 
 	$opt[$KEY] = '--vertical-label "' . $vlabel . '" --title "' . $this->MACRO['DISP_HOSTNAME'] . ' / ' . $this->MACRO['DISP_SERVICEDESC'] . '"' . $upper . $lower;
 	$ds_name[$KEY] = $VAL['LABEL'];
-	$def[$KEY]  = "DEF:var1=".$VAL['RRDFILE'].":".$VAL['DS'].":AVERAGE ";
-	$def[$KEY] .= "AREA:var1" . $_AREA . ":\"".$VAL['NAME']."\" ";
-	$def[$KEY] .= "LINE1:var1" . $_LINE . ":\"\" ";
-	$def[$KEY] .= "GPRINT:var1:LAST:\"%3.4lf ".$VAL['UNIT']." LAST \" ";
-	$def[$KEY] .= "GPRINT:var1:MAX:\"%3.4lf ".$VAL['UNIT']." MAX \" ";
-	$def[$KEY] .= "GPRINT:var1:AVERAGE:\"%3.4lf ".$VAL['UNIT']." AVERAGE \\n\" ";
+	$def[$KEY]  = rrd::def     ("var1", $VAL['RRDFILE'], $VAL['DS'], "AVERAGE");
+	$def[$KEY] .= rrd::gradient("var1", "BDC6DE", "3152A5", rrd::cut($VAL['NAME'],16), 20);
+	$def[$KEY] .= rrd::line1   ("var1", $_LINE );
+	$def[$KEY] .= rrd::gprint  ("var1", array("LAST","MAX","AVERAGE"), "%3.4lf %S".$VAL['UNIT']);
 	if ($warning != "") {
-		$def[$KEY] .= "HRULE:" . $warning . $_WARNRULE . ':"Warning on  ' . $warning . '\n" ';
+		$def[$KEY] .= rrd::hrule($warning, $_WARNRULE, "Warning  $warning \\n");
 	}
 	if ($critical != "") {
-		$def[$KEY] .= "HRULE:" . $critical . $_CRITRULE . ':"Critical on ' . $critical . '\n" ';
+		$def[$KEY] .= rrd::hrule($critical, $_CRITRULE, "Critical $critical \\n");
 	}
-	$def[$KEY] .= 'COMMENT:"Default Template\r" ';
-	$def[$KEY] .= 'COMMENT:"Check Command ' . $VAL['TEMPLATE'] . '\r" ';
+	$def[$KEY] .= rrd::comment("Default Template\\r");
+	$def[$KEY] .= rrd::comment("Command " . $VAL['TEMPLATE'] . "\\r");
 }
 ?>

@@ -13,6 +13,7 @@ $lang = array
     'basket-box-header' => 'Мой набор',
     'timerange-box-header' => 'Интервалы времени',
     'service-box-header' => 'Службы',
+    'special-templates-box-header' => 'Special Templates',
     'pages-box-header' => 'Страницы',
     'nagios-summary-link-title' => 'Последние алерты за данный промежуток',
     'nagios-avail-link-title'   => 'Сводка доступности за данный промежуток',
@@ -30,4 +31,5 @@ $lang = array
     'title-xml-link' => 'Просмотр XML',
     'title-statistics-link' => 'Просмотр внутренней статистики PNP',
     'title-calendar-link' => 'Установка собственного временного интервала',
+    'title-special-templates-link' => 'View Special Templates',
 );

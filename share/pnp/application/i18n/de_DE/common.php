@@ -13,7 +13,8 @@ $lang = array
 	'basket-box-header' => 'Mein Korb',
 	'timerange-box-header' => 'Zeitbereiche',
 	'service-box-header' => 'Services',
-	'pages-box-header' => 'Pages',
+    'special-templates-box-header' => 'Special Templates',
+    'pages-box-header' => 'Pages',
 	'nagios-summary-link-title' => 'aktuellste Alarme für diesen Zeitbereich',
 	'nagios-avail-link-title'   => 'Nagios-Verfügbarkeitsbericht für diesen Zeitbereich',
     'timerange-selector-legend' => 'Auswahl eines Zeitbereichs',
@@ -30,4 +31,5 @@ $lang = array
     'title-xml-link' => 'XML anzeigen',
     'title-statistics-link' => 'Interne PNP Statistiken',
     'title-calendar-link' => 'Einen Zeitbereich definieren',
+    'title-special-templates-link' =>  'Spezial Templates anzeigen',
 );
