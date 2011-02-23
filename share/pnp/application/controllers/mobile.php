@@ -18,7 +18,6 @@ class Mobile_Controller extends System_Controller  {
     {
         // Service Details
         if($this->host != "" && $this->service != ""){
-            //
         // Host Overview
         }elseif($this->host != ""){
             $this->is_authorized = $this->auth->is_authorized($this->host); 

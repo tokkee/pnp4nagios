@@ -7,8 +7,6 @@
         </style>
         <style type="text/css" media="screen">@import "media/jqtouch/theme.css";
         </style>
-        <style type="text/css" media="screen">@import "media/css/ui-smoothness/jquery-ui.css";
-        </style>
         <script src="media/js/jquery-min.js" type="text/javascript" charset="utf-8"></script>
         <script src="media/jqtouch/jqtouch.js" type="application/x-javascript" charset="utf-8"></script>
         <script type="text/javascript" charset="utf-8">
@@ -129,19 +127,21 @@
     <body>
         <div id="about" class="selectable ui-widget-content">
             <p>
-                <strong>PNP4Nagios 0.6.12</strong>
+                <strong>PNP4Nagios</strong>
             </p>
         </div>
         <div id="hosts" class="ui-widget-content">
             <div class="toolbar ui-widget-header">
                 <h1>Hosts</h1>
                 <a href="#" class="back">Back</a>
+                <a class="button slideup" id="infoButton" href="#home">Home</a>
             </div>
             <ul class="rounded"></ul>
         </div>
         <div id="graphs" class="ui-widget-content">
             <div class="toolbar ui-widget-header">
                 <a href="#" class="back">Back</a>
+                <a class="button slideup" id="infoButton" href="#home">Home</a>
             </div>
             <ul class="rounded" id="graphs-hour"></ul>
         </div>
@@ -149,6 +149,7 @@
             <div class="toolbar ui-widget-header">
                 <h1><span class="selected-host"></span></h1>
                 <a href="#" class="back">Back</a>
+                <a class="button slideup" id="infoButton" href="#home">Home</a>
             </div>
             <ul class="rounded"></ul>
         </div>
@@ -156,7 +157,6 @@
             <div class="toolbar ui-widget-header">
                 <h1>PNP4Nagios</h1>
                 <a class="button slideup" id="infoButton" href="#about">About</a>
-                <!--<a href="#settings" class="button leftButton flip">Settings</a>-->
             </div>
             <ul class="rounded">
                 <li class="arrow">
