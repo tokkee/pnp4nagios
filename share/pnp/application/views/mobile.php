@@ -42,7 +42,7 @@
                     $selected_plugin = $('#services').data('selected_plugin');
                     $('.selected-host').html($selected_host);
                     $('.selected-plugin').html($selected_plugin);
-                    $("#graphs-hour ul, #graphs-hour li,#graphs-hour h2,#graphs-month li,#graphs-year li").each(function(){
+                    $("#graphs-hour ul, #graphs-hour li,#graphs-hour h2").each(function(){
                         $(this).remove();
                     });
                     
