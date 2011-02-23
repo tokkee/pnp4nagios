@@ -15,7 +15,7 @@
                 addGlossToIcon: false,
                 startupScreen: 'media/jqtouch/jqt_startup.png',
                 statusBar: 'blue',
-                preloadImages: ['media/jqtouch/img/backButton.png', 'media/jqtouch/img/grayButton.png', 'media/jqtouch/img/whiteButton.png', 'media/jqtouch/img/loading.gif', 'media/jqtouch/img/loading.gif', 'media/jqtouch/img/pinstripes.png']
+                preloadImages: ['media/jqtouch/img/chevron.png', 'media/jqtouch/img/toolbar.png', 'media/jqtouch/img/backButton.png', 'media/jqtouch/img/grayButton.png', 'media/jqtouch/img/whiteButton.png', 'media/jqtouch/img/loading.gif', 'media/jqtouch/img/loading.gif', 'media/jqtouch/img/pinstripes.png']
             });
             $(function(){
                 $('#hosts').bind('pageAnimationEnd', function(e, info){
