@@ -23,6 +23,7 @@
                         $("#hosts ul li").each(function(){
                             $(this).remove();
                         });
+                        $('#loading-hosts').remove();
                         $(this).append($('<div id="loading-hosts"><img src="media/jqtouch/img/loading.gif" alt="Loading" /><p>Loading...</p></div>'));
                         $.getJSON('index.php/json', function(data){
                             $('#loading-hosts').remove();
@@ -46,6 +47,7 @@
                         $(this).remove();
                     });
                     
+                    $('#loading-graphs').remove();
                     $(this).append($('<div id="loading-graphs"><img src="media/jqtouch/img/loading.gif" alt="Loading" /><p>Loading...</p></div>'));
                     $.getJSON('index.php/json?srv=' + $selected_plugin + '&host=' + $selected_host, function(data){
                         $('#loading-graphs').remove();
@@ -66,6 +68,7 @@
                         $(this).remove();
                     });
                     
+                    $('#loading-services').remove();
                     $(this).append($('<div id="loading-services"><img src="media/jqtouch/img/loading.gif" alt="Loading" /><p>Loading...</p></div>'));
                     $.getJSON('index.php/json?host=' + $selected_host, function(data){
                         $('#loading-services').remove();
@@ -90,7 +93,7 @@
             }
             
             #about {
-                padding: 100px 10px 40px;
+                #padding: 100px 10px 40px;
                 text-shadow: rgba(255, 255, 255, 0.3) 0px -1px 0;
                 font-size: 13px;
                 text-align: center;
@@ -125,7 +128,11 @@
         </style>
     </head>
     <body>
-        <div id="about" class="selectable ui-widget-content">
+        <div id="about" class="ui-widget-content">
+            <div class="toolbar ui-widget-header">
+                <a href="#" class="back">Back</a>
+                <a class="button slideup" id="infoButton" href="#home">Home</a>
+            </div>
             <p>
                 <strong>PNP4Nagios</strong>
             </p>
