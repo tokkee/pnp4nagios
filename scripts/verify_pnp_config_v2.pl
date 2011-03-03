@@ -46,21 +46,21 @@ my @states   = ("OK", "WARN", "CRIT", "UNKN", "INFO");
 my @colors   = ("bold green", "bold yellow", "bold red", "bold blue", "bold blue");
 my %process_perf_data_stats = (0 => 0, 1 => 0);
 
-if ( ! $mode ){
-	usage();;
-	usage_no_mode();
-	exit;
-}
-
 if ( ! $MainCfg ){
 	usage();
 	usage_no_config();
 	exit;
 }
 
+if ( ! $mode ){
+	usage();;
+	usage_no_mode();
+	exit;
+}
+
 if( ! in_array(\@modes, $mode)){
 	usage();
-	info("$mode is not valid",2);
+	info("'$mode' is not a valid option",2);
 	info("Valid modes are [@modes]",2);
 	exit;
 }
@@ -114,7 +114,7 @@ if( -r $cfg{'object_cache_file'} ){
 # Start Main config checks
 #
 
-if(canfig_var_exists($product.'_user') ){
+if(config_var_exists($product.'_user') ){
 	my $user = get_config_var($product.'_user');
 	my $uid  = getpwnam($user);
 	info( "Effective User is '$user'", 0);
@@ -127,7 +127,7 @@ if(canfig_var_exists($product.'_user') ){
 	info_and_exit("Option '".$product."_user' not found in $MainCfg", 2);
 }
 
-if(canfig_var_exists($product.'_group') ){
+if(config_var_exists($product.'_group') ){
 	my $group = get_config_var($product.'_group');
 	my $gid  = getgrnam($group);
 	info( "Effective Group is '$group'", 0);
@@ -314,7 +314,7 @@ if($process_perf_data_stats{1} > 0){
 
 exit;
 
-sub canfig_var_exists {
+sub config_var_exists {
 	my $key = shift;
 	if(exists $cfg{$key}){
 		return 1;
@@ -412,7 +412,7 @@ sub info_and_exit {
 
 sub check_proc_npcd {
 	my $user = shift;
-	my $out = `ps -u $user -o cmd | grep npcd | grep -v grep`;
+	my $out = `ps -u $user -o cmd | grep /npcd | grep -v grep`;
 	my $rc = $?;
 	chomp $out;
 	#extract npcd.cfg 
@@ -511,16 +511,16 @@ sub in_array{
 sub usage{
 print <<EOF;
 
-verify_pnp_config -m|--mode=[sync|bulk|npcdmod] -c|--config=[path to nagios.cfg]
+verify_pnp_config -m|--mode=[sync|bulk|bulk+npcd|npcdmod] -c|--config=[path to nagios.cfg]
 
 This script will check certain settings/entries of your PNP environ-
 ment to assist you in finding problems when you are using PNP.
 It may be used prior and during operation of PNP.
 
 Output starts with a letter with the following meaning:
-[IMFO] informational message about settings, ...
+[INFO] informational message about settings, ...
 [OK  ] ok message, will not affect the operation of PNP
-[WARN] warning message, might be effent the operation of PNP
+[WARN] warning message, might effect the operation of PNP 
 [CRIT] error message: PNP will not work without resolving the problem(s)
 [INFO] hint: it might be worth reading the appropriate documentation
 [DBG ] debugging message, hopefully showing the source of your problem
@@ -529,9 +529,11 @@ EOF
 }
 
 sub usage_no_config{
-	info_and_exit("-c | --config option not given",2);
+	info("-c | --config option not given",2);
+	info_and_exit("please specify the path to your nagios or icinga.cfg",2);
 }
 
 sub usage_no_mode{
-	info_and_exit("-m | --mode option not given",2);
+	info("-m | --mode option not given",2);
+	info_and_exit("Valid options are [@modes]",2);
 }
